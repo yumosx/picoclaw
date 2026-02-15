@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+var (
+	frontmatterExtractRE = regexp.MustCompile(`(?s)^---\n(.*)\n---`)
+	frontmatterStripRE   = regexp.MustCompile(`^---\n.*?\n---\n`)
+)
+
 type SkillMetadata struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -261,10 +266,7 @@ func (sl *SkillsLoader) parseSimpleYAML(content string) map[string]string {
 }
 
 func (sl *SkillsLoader) extractFrontmatter(content string) string {
-	// (?s) enables DOTALL mode so . matches newlines
-	// Match first ---, capture everything until next --- on its own line
-	re := regexp.MustCompile(`(?s)^---\n(.*)\n---`)
-	match := re.FindStringSubmatch(content)
+	match := frontmatterExtractRE.FindStringSubmatch(content)
 	if len(match) > 1 {
 		return match[1]
 	}
@@ -272,8 +274,7 @@ func (sl *SkillsLoader) extractFrontmatter(content string) string {
 }
 
 func (sl *SkillsLoader) stripFrontmatter(content string) string {
-	re := regexp.MustCompile(`^---\n.*?\n---\n`)
-	return re.ReplaceAllString(content, "")
+	return frontmatterStripRE.ReplaceAllString(content, "")
 }
 
 func escapeXML(s string) string {
