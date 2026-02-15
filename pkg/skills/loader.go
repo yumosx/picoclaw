@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 type SkillMetadata struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 }
 
 type SkillInfo struct {
@@ -217,47 +219,17 @@ func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
 	}
 
 	// Try JSON first (for backward compatibility)
-	var jsonMeta struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-	if err := json.Unmarshal([]byte(frontmatter), &jsonMeta); err == nil {
-		return &SkillMetadata{
-			Name:        jsonMeta.Name,
-			Description: jsonMeta.Description,
-		}
+	var meta SkillMetadata
+	if err := json.Unmarshal([]byte(frontmatter), &meta); err == nil {
+		return &meta
 	}
 
-	// Fall back to simple YAML parsing
-	yamlMeta := sl.parseSimpleYAML(frontmatter)
-	return &SkillMetadata{
-		Name:        yamlMeta["name"],
-		Description: yamlMeta["description"],
-	}
-}
-
-// parseSimpleYAML parses simple key: value YAML format
-// Example: name: github\n description: "..."
-func (sl *SkillsLoader) parseSimpleYAML(content string) map[string]string {
-	result := make(map[string]string)
-
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) == 2 {
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			// Remove quotes if present
-			value = strings.Trim(value, "\"'")
-			result[key] = value
-		}
+	// Fall back to YAML parsing
+	if err := yaml.Unmarshal([]byte(frontmatter), &meta); err == nil {
+		return &meta
 	}
 
-	return result
+	return nil
 }
 
 func (sl *SkillsLoader) extractFrontmatter(content string) string {
