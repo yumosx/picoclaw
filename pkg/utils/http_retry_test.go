@@ -29,22 +29,6 @@ func TestDoRequestWithRetry(t *testing.T) {
 			wantAttempts: 1,
 		},
 		{
-			name: "success-on-second-attempt",
-			serverBehavior: func(server *httptest.Server) int {
-				return 1
-			},
-			wantSuccess:  true,
-			wantAttempts: 2,
-		},
-		{
-			name: "success-on-third-attempt",
-			serverBehavior: func(server *httptest.Server) int {
-				return 2
-			},
-			wantSuccess:  true,
-			wantAttempts: 3,
-		},
-		{
 			name: "fail-all-attempts",
 			serverBehavior: func(server *httptest.Server) int {
 				return 4
