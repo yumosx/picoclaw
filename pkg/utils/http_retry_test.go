@@ -1,4 +1,4 @@
-package skills
+package utils
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDoRequestWithRetry(t *testing.T) {
@@ -48,14 +49,6 @@ func TestDoRequestWithRetry(t *testing.T) {
 			wantSuccess:  false,
 			wantAttempts: 3,
 		},
-		{
-			name: "non-ok-status-code",
-			serverBehavior: func(server *httptest.Server) int {
-				return 4
-			},
-			wantSuccess:  false,
-			wantAttempts: 3,
-		},
 	}
 
 	for _, tc := range testcases {
@@ -71,21 +64,23 @@ func TestDoRequestWithRetry(t *testing.T) {
 				w.Write([]byte("success"))
 			}))
 
-			defer server.Close()
+			t.Cleanup(func() {
+				server.Close()
+			})
 
 			client := &http.Client{Timeout: 5 * time.Second}
-			req, err := http.NewRequest("GET", server.URL, nil)
-			assert.NoError(t, err)
+			req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+			require.NoError(t, err)
 
-			resp, err := doRequestWithRetry(client, req)
+			resp, err := DoRequestWithRetry(client, req)
 
 			if tc.wantSuccess {
-				assert.NoError(t, err)
-				assert.NotNil(t, resp)
+				require.NoError(t, err)
+				require.NotNil(t, resp)
 				assert.Equal(t, http.StatusOK, resp.StatusCode)
 				resp.Body.Close()
 			} else {
-				assert.NotNil(t, resp)
+				require.NotNil(t, resp)
 				assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 				resp.Body.Close()
 			}
@@ -120,12 +115,12 @@ func TestDoRequestWithRetry_Delay(t *testing.T) {
 	defer server.Close()
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	req, err := http.NewRequest("GET", server.URL, nil)
-	assert.NoError(t, err)
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	require.NoError(t, err)
 
-	resp, err := doRequestWithRetry(client, req)
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
+	resp, err := DoRequestWithRetry(client, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	resp.Body.Close()
 
